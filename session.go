@@ -28,7 +28,7 @@ type Session struct {
 	cipher          cipher
 	ttl             int64
 	startTime       int64
-	globalConfig    globalConfig
+	globalConfig    Config
 	activeHandshake *handshake
 }
 
@@ -38,18 +38,18 @@ type SessionOptions struct {
 	StorageFilePath string
 }
 
-// GlobalConfig holds global settings used by the app
+// Config holds global settings used by the app
 // These may end up just being global constants.
-type globalConfig struct {
+type Config struct {
 	TTL                 int
 	FailedLoginAttempts int
 	MaxLoginAttempts    int
 }
 
-// newGlobalConfig creates a new global config struct with default settings.
+// NewConfig creates a new global config struct with default settings.
 // This is primarily used for initializing a new data store
-func newGlobalConfig() globalConfig {
-	return globalConfig{
+func NewConfig() Config {
+	return Config{
 		TTL:                 DefaultSessionTTL,
 		FailedLoginAttempts: 0,
 		MaxLoginAttempts:    DefaultMaxLoginAttempts,
@@ -57,16 +57,16 @@ func newGlobalConfig() globalConfig {
 }
 
 // ToJSON is a helper method for GlobalConfig
-func (g globalConfig) ToJSON() []byte {
+func (g Config) ToJSON() []byte {
 	b, _ := json.Marshal(g)
 	return b
 }
 
 // NewSession takes a password and opts and returns a pointer to Session and an error
-func NewSession(password string, opts SessionOptions) (*Session, error) {
+func NewSession(password string, cfg Config, opts SessionOptions) (*Session, error) {
 	storageOpts := StorageOptions{Engine: opts.StorageEngine}
 	storageOpts.FilePath = opts.StorageFilePath
-	storage, err := newStorage(storageOpts)
+	storage, err := newStorage(cfg, storageOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +105,9 @@ func NewSession(password string, opts SessionOptions) (*Session, error) {
 // NewDefaultSession is a wrapper around NewSession and applies simple defaults. This is intended to be used
 //by the reference apps.
 func NewDefaultSession(password string) (*Session, error) {
+	cfg := NewConfig()
 	opts := SessionOptions{StorageEngine: defaultStorageEngine}
-	return NewSession(password, opts)
+	return NewSession(password, cfg, opts)
 }
 
 // setProfile takes a profile and sets it to the private variable in the Session struct
@@ -253,7 +254,7 @@ func (s *Session) NewChat() (string, error) {
 		return "", err
 	}
 
-	if err := s.setChatlog(chatID, make(chatLog)); err != nil {
+	if err := s.setChatlog(chatID, make(ChatLog)); err != nil {
 		deleteAllWithPrefix(s.storage, basePath)
 		return "", err
 	}
@@ -313,16 +314,17 @@ func (s *Session) setLookup(chatID, peerID string, l lookup) error {
 	return err
 }
 
-func (s *Session) GetChatlog(chatID string) (chatLog, error) {
+// GetChatlog fetches a chat log for a given chat
+func (s *Session) GetChatlog(chatID string) (ChatLog, error) {
 	key := fmt.Sprintf("chats/%v/%v/chatlog", chatID, s.profile.ID)
 	chatLogGob, err := s.get(key)
 	if err != nil {
-		return chatLog{}, err
+		return ChatLog{}, err
 	}
 	return newChatLogFromGob(chatLogGob)
 }
 
-func (s *Session) setChatlog(chatID string, cl chatLog) error {
+func (s *Session) setChatlog(chatID string, cl ChatLog) error {
 	key := fmt.Sprintf("chats/%v/%v/chatlog", chatID, s.profile.ID)
 	chatLogGob, err := encodeGob(cl)
 	if err != nil {
@@ -414,7 +416,7 @@ func (s *Session) logChatData(chatID string, peerID string, hash string, data ch
 		return err
 	}
 
-	clEntry := chatLogEntry{
+	clEntry := ChatLogEntry{
 		ID:     hash,
 		Sender: peerID,
 		Sent:   data.Timestamp,
@@ -591,7 +593,7 @@ func (s *Session) SendMessage(chatID string, b []byte) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	clEntry := chatLogEntry{
+	clEntry := ChatLogEntry{
 		ID:     hash,
 		Sender: c.PeerID,
 		Sent:   data.Timestamp,

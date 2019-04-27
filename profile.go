@@ -46,8 +46,9 @@ func newProfileFromGob(b []byte) (Profile, error) {
 // returns `false` and no errors, the next step would be to prompt the user to setup a new profile using
 // `NewGenesisProfile()`.
 func ProfilesExist() (bool, error) {
+	cfg := NewConfig()
 	opts := StorageOptions{Engine: defaultStorageEngine}
-	storage, err := newStorage(opts)
+	storage, err := newStorage(cfg, opts)
 	if err != nil {
 		return false, err
 	}
@@ -70,8 +71,9 @@ func profilesExist(storage storage) (bool, error) {
 
 // NewGenesisProfile takes password and
 func NewGenesisProfile(password string) error {
+	cfg := NewConfig()
 	opts := StorageOptions{Engine: defaultStorageEngine}
-	storage, err := newStorage(opts)
+	storage, err := newStorage(cfg, opts)
 	if err != nil {
 		return err
 	}

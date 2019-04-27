@@ -14,6 +14,11 @@
 # ignore scratch dir
 scratch/
 
+# goland noise
+.idea/
+
+# vendor dir
+vendor/
 
 db.bolt
 handshake.boltdb

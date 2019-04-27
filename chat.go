@@ -19,9 +19,11 @@ const (
 
 type lookup map[string][]byte
 
-type chatLog map[string]chatLogEntry
+// ChatLog represents a log of chat messages
+type ChatLog map[string]ChatLogEntry
 
-type chatLogEntry struct {
+// ChatLogEntry represents an entry in a chat log
+type ChatLogEntry struct {
 	ID       string   `json:"id,omitempty"`
 	Sender   string   `json:"sender,omitempty"`
 	Sent     int64    `json:"sent,omitempty"`
@@ -30,12 +32,14 @@ type chatLogEntry struct {
 	Data     chatData `json:"data"`
 }
 
-func (cl chatLog) SortedJSON() ([]byte, error) {
+// SortedJSON sorts the chat log and renders it to a JSON representation
+func (cl ChatLog) SortedJSON() ([]byte, error) {
 	return json.Marshal(cl.Sorted())
 }
 
-func (cl chatLog) Sorted() []chatLogEntry {
-	var entries []chatLogEntry
+// Sorted sorts the ChatLog's messages by key and returns just the messages
+func (cl ChatLog) Sorted() []ChatLogEntry {
+	var entries []ChatLogEntry
 	var keys []string
 
 	for k := range cl {
@@ -48,7 +52,8 @@ func (cl chatLog) Sorted() []chatLogEntry {
 	return entries
 }
 
-func (cl *chatLog) AddEntry(entry chatLogEntry) error {
+// AddEntry adds an entry to the ChatLog
+func (cl *ChatLog) AddEntry(entry ChatLogEntry) error {
 	if (entry.Sent == 0) && (entry.Received == 0) {
 		return errors.New("no valid timestamp found")
 	}
@@ -62,7 +67,8 @@ func (cl *chatLog) AddEntry(entry chatLogEntry) error {
 	return nil
 }
 
-func (cl chatLog) HashInLog(hash string) bool {
+// HashInLog retursn whether or not a given hash is contained in the ChatLog
+func (cl ChatLog) HashInLog(hash string) bool {
 	for entry := range cl {
 		if strings.Contains(entry, hash) {
 			return true
@@ -101,7 +107,7 @@ type chatSettings struct {
 }
 
 // uniqueChatIDsFromPaths takes a lists of paths from and a profile ID and strips out unique ChatID
-// entries and resturns a slice of strings
+// entries and returns a slice of strings
 func uniqueChatIDsFromPaths(list []string, profileID string) (ids []string) {
 	idMap := make(map[string]struct{})
 	for _, l := range list {
@@ -135,13 +141,13 @@ func newChatFromGob(b []byte) (chat, error) {
 	return config.Chat()
 }
 
-func newChatLogFromGob(b []byte) (chatLog, error) {
-	var cl chatLog
+func newChatLogFromGob(b []byte) (ChatLog, error) {
+	var cl ChatLog
 	var buffer bytes.Buffer
 	buffer.Write(b)
 	err := gob.NewDecoder(&buffer).Decode(&cl)
 	if err != nil {
-		return chatLog{}, err
+		return ChatLog{}, err
 	}
 	return cl, nil
 }
@@ -176,7 +182,7 @@ func (l lookup) getRandom() (string, []byte) {
 }
 
 // TODO:
-// - get chatLog
+// - get ChatLog
 // - retrieve Chatmessages (this should query all peer's endpoints)
 // -- this should be recursive and query chats until all either a hash match
 // -- or the lookup hash doesn't exist

@@ -85,22 +85,24 @@ func TestSendReceive(t *testing.T) {
 
 	os.Rename(defaultBoltFilePath, aliceStoragePath)
 
-	bobSesionOpts := SessionOptions{
+	bobCfg := NewConfig()
+	bobSessionOpts := SessionOptions{
 		StorageEngine:   defaultStorageEngine,
 		StorageFilePath: bobStoragePath,
 	}
 
-	bobSession, err := NewSession(bobPassword, bobSesionOpts)
+	bobSession, err := NewSession(bobPassword, bobCfg, bobSessionOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	aliceSesionOpts := SessionOptions{
+	aliceCfg := NewConfig()
+	aliceSessionOpts := SessionOptions{
 		StorageEngine:   defaultStorageEngine,
 		StorageFilePath: aliceStoragePath,
 	}
 
-	aliceSession, err := NewSession(alicePassword, aliceSesionOpts)
+	aliceSession, err := NewSession(alicePassword, aliceCfg, aliceSessionOpts)
 	if err != nil {
 		t.Fatal(err)
 	}

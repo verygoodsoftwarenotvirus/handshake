@@ -2,7 +2,7 @@
 
 PROJECT := handshake
 
-.PHONY: usage build ssh clean
+.PHONY: usage build shell clean
 
 usage:
 	@echo "Targets:"
@@ -18,4 +18,4 @@ shell:
 
 clean:
 	docker images -aq | xargs -n 1 docker rmi -f
-	docker ps -aq | docker rm -f 
+	docker ps -aq | docker rm -f

@@ -58,9 +58,9 @@ func TestExportStrategy(t *testing.T) {
 	}
 
 	t.Log(strat.Share())
-	stratJson, err := strat.ShareJSONBytes()
+	stratJSON, err := strat.ShareJSONBytes()
 	if err != nil {
 		t.Errorf("failed on json bytes %v", err)
 	}
-	t.Log(string(stratJson))
+	t.Log(string(stratJSON))
 }

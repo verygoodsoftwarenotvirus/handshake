@@ -1,4 +1,4 @@
-package handshake
+package storage
 
 import (
 	"bytes"
@@ -14,23 +14,25 @@ import (
 
 // HashmapStorage interacts with a hashmap server and
 // conforms to the Storage interface
-type hashmapStorage struct {
-	ReadNodes  []node
-	WriteNodes []node
-	Signatures []signatureAlgorithm
+type HashmapStorage struct {
+	ReadNodes  []Node
+	WriteNodes []Node
+	Signatures []SignatureAlgorithm
 	ReadRule   consensusRule
 	WriteRule  consensusRule
 	Latest     int64
 }
 
-type signatureAlgorithm struct {
+// SignatureAlgorithm describes the
+type SignatureAlgorithm struct {
 	Type       signatureType
 	PrivateKey []byte
 	PublicKey  []byte
 }
 
-func newHashmapStorage(opts StorageOptions) (*hashmapStorage, error) {
-	return &hashmapStorage{
+// NewHashmapStorage builds a new Hashmap Storage instance
+func NewHashmapStorage(opts StorageOptions) (*HashmapStorage, error) {
+	return &HashmapStorage{
 		Signatures: opts.Signatures,
 		ReadNodes:  opts.ReadNodes,
 		WriteNodes: opts.WriteNodes,
@@ -39,7 +41,7 @@ func newHashmapStorage(opts StorageOptions) (*hashmapStorage, error) {
 	}, nil
 }
 
-func (s *hashmapStorage) updateLatest(timeStamp int64) error {
+func (s *HashmapStorage) updateLatest(timeStamp int64) error {
 	// check for timestamp set too far in the future
 	if timeStamp > (time.Now().UnixNano() + (5 * 1000000000)) {
 		return errors.New("invalid future timestamp")
@@ -67,7 +69,7 @@ func getHashFromPath(path string) string {
 // - validating the MultiHash in the URL is supported
 // - comparing the payload pubkey to the url hash, which must match.
 // if all verification and validations are successful, it returns the data bytes from the payload
-func (s *hashmapStorage) getFirstSuccess() ([]byte, error) {
+func (s *HashmapStorage) getFirstSuccess() ([]byte, error) {
 	for _, node := range s.ReadNodes {
 		u, err := url.Parse(node.URL)
 		if err != nil {
@@ -110,7 +112,8 @@ func (s *hashmapStorage) getFirstSuccess() ([]byte, error) {
 	return []byte{}, errors.New("no servers available")
 }
 
-func (s *hashmapStorage) Get(key string) ([]byte, error) {
+// Get fetches an item from storage for a given key
+func (s *HashmapStorage) Get(key string) ([]byte, error) {
 	if len(s.ReadNodes) < 1 {
 		return []byte{}, errors.New("no read nodes configured")
 	}
@@ -123,7 +126,7 @@ func (s *hashmapStorage) Get(key string) ([]byte, error) {
 
 }
 
-func (s *hashmapStorage) setFirstSuccess(payload []byte) error {
+func (s *HashmapStorage) setFirstSuccess(payload []byte) error {
 	for _, node := range s.WriteNodes {
 		resp, err := http.Post(node.URL, "application/json", bytes.NewReader(payload))
 		if err != nil {
@@ -137,7 +140,8 @@ func (s *hashmapStorage) setFirstSuccess(payload []byte) error {
 	return errors.New("no servers available")
 }
 
-func (s *hashmapStorage) Set(key string, value []byte) (string, error) {
+// Set blah
+func (s *HashmapStorage) Set(key string, value []byte) (string, error) {
 	if len(s.WriteNodes) < 1 {
 		return key, errors.New("no write nodes configured")
 	}
@@ -159,34 +163,35 @@ func (s *hashmapStorage) Set(key string, value []byte) (string, error) {
 
 // Delete is used to remove references from hashmap. Not currently implemented.
 // TODO : a delete could be accomplished by writing a blank dataset to each endpoint
-func (s hashmapStorage) Delete(key string) (e error) { return }
+func (s HashmapStorage) Delete(key string) (e error) { return }
 
 // List is not implemented for hashmapStorage, returns "", nil
-func (s hashmapStorage) List(path string) ([]string, error) {
+func (s HashmapStorage) List(path string) ([]string, error) {
 	return []string{}, errors.New("no implemented")
 }
 
 // Close is not used in hashmap, returns nil
-func (s hashmapStorage) Close() (e error) { return }
+func (s HashmapStorage) Close() (e error) { return }
 
-// share returns a peerStorage and error, it generates read nodes from the write nodes + pubkey
+// Share returns a PeerStorage and error, it generates read nodes from the write nodes + pubkey
 // it also returns ReadRules based on the WriteRules
-func (s hashmapStorage) share() (peerStorage, error) {
+func (s HashmapStorage) Share() (PeerStorage, error) {
 	readNodes, err := s.genReadFromWriteNodes()
 	if err != nil {
-		return peerStorage{}, err
+		return PeerStorage{}, err
 	}
 
-	return peerStorage{
+	return PeerStorage{
 		Type:      HashmapEngine,
 		ReadNodes: readNodes,
 		ReadRule:  s.WriteRule,
 	}, nil
 }
 
-// TODO: configure export settings for this
-func (s hashmapStorage) export() (storageConfig, error) {
-	return storageConfig{
+// Export returns a storage configuration based on the storage instance
+// TODO: configure Export settings for this
+func (s HashmapStorage) Export() (StorageConfig, error) {
+	return StorageConfig{
 		Type:       HashmapEngine,
 		ReadNodes:  s.ReadNodes,
 		WriteNodes: s.WriteNodes,
@@ -199,8 +204,8 @@ func (s hashmapStorage) export() (storageConfig, error) {
 
 // genReadFromWriteNodes creates a set of read nodes based on all signature
 // files times the number of write urls and returns a list of nodes and and error
-func (s hashmapStorage) genReadFromWriteNodes() ([]node, error) {
-	var readNodes []node
+func (s HashmapStorage) genReadFromWriteNodes() ([]Node, error) {
+	var readNodes []Node
 	var endpoints []string
 	for _, sig := range s.Signatures {
 		endpoints = append(endpoints, base58Multihash(sig.PublicKey))
@@ -212,7 +217,7 @@ func (s hashmapStorage) genReadFromWriteNodes() ([]node, error) {
 				return readNodes, err
 			}
 			u.Path = endpoint
-			readNodes = append(readNodes, node{URL: u.String()})
+			readNodes = append(readNodes, Node{URL: u.String()})
 		}
 	}
 	return readNodes, nil

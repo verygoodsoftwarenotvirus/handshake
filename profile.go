@@ -7,6 +7,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"strings"
+
+	"github.com/nomasters/handshake/lib/config"
+	"github.com/nomasters/handshake/lib/storage"
 )
 
 const (
@@ -46,9 +49,9 @@ func newProfileFromGob(b []byte) (Profile, error) {
 // returns `false` and no errors, the next step would be to prompt the user to setup a new profile using
 // `NewGenesisProfile()`.
 func ProfilesExist() (bool, error) {
-	cfg := NewConfig()
-	opts := StorageOptions{Engine: defaultStorageEngine}
-	storage, err := newStorage(cfg, opts)
+	cfg := config.NewConfig()
+	opts := storage.StorageOptions{Engine: storage.DefaultStorageEngine}
+	storage, err := storage.NewStorage(cfg, opts)
 	if err != nil {
 		return false, err
 	}
@@ -58,7 +61,7 @@ func ProfilesExist() (bool, error) {
 
 // ProfilesExist takes a storage interface and checks to see if any profiles exist
 // returns true only if the list of profiles is greater than 0 all other failure states return false.
-func profilesExist(storage storage) (bool, error) {
+func profilesExist(storage storage.Storage) (bool, error) {
 	profiles, err := storage.List(profileKeyPrefix)
 	if err != nil {
 		return false, err
@@ -71,9 +74,9 @@ func profilesExist(storage storage) (bool, error) {
 
 // NewGenesisProfile takes password and
 func NewGenesisProfile(password string) error {
-	cfg := NewConfig()
-	opts := StorageOptions{Engine: defaultStorageEngine}
-	storage, err := newStorage(cfg, opts)
+	cfg := config.NewConfig()
+	opts := storage.StorageOptions{Engine: storage.DefaultStorageEngine}
+	storage, err := storage.NewStorage(cfg, opts)
 	if err != nil {
 		return err
 	}
@@ -89,7 +92,7 @@ func NewGenesisProfile(password string) error {
 	return initProfile(generateRandomProfile(), password, newTimeSeriesSBCipher(), storage)
 }
 
-func initProfile(p Profile, password string, cipher cipher, storage storage) error {
+func initProfile(p Profile, password string, cipher cipher, storage storage.Storage) error {
 	id, err := p.IDBytes()
 	if err != nil {
 		return errors.New("profile id failed to decode hex")
@@ -109,7 +112,7 @@ func initProfile(p Profile, password string, cipher cipher, storage storage) err
 
 // GetProfileFromEncryptedStorage takes a storage path, password, and storage interface and returns a Profile struct and error.DecryptProfile
 //
-func getProfileFromEncryptedStorage(path string, key []byte, cipher cipher, storage storage) (Profile, error) {
+func getProfileFromEncryptedStorage(path string, key []byte, cipher cipher, storage storage.Storage) (Profile, error) {
 	data, err := storage.Get(path)
 	if err != nil {
 		return Profile{}, err

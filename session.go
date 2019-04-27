@@ -9,64 +9,41 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/nomasters/handshake/lib/config"
+	"github.com/nomasters/handshake/lib/storage"
 )
 
 const (
 	// DefaultSessionTTL is the default TTL before a Session closes
-	DefaultSessionTTL = 15 * 60 // 15 minutes in seconds
-	// DefaultMaxLoginAttempts is the number of times failed login attempts are allowed
-	DefaultMaxLoginAttempts = 10
-	chatIDLength            = 12
-	defaultLookupCount      = 10000
+	DefaultSessionTTL  = 15 * 60 // 15 minutes in seconds
+	chatIDLength       = 12
+	defaultLookupCount = 10000
 )
 
 // Session is the primary struct for a logged in  user. It holds the profile data
 // as well as settings information
 type Session struct {
 	profile         Profile
-	storage         storage
+	storage         storage.Storage
 	cipher          cipher
 	ttl             int64
 	startTime       int64
-	globalConfig    Config
+	globalConfig    config.Config
 	activeHandshake *handshake
 }
 
 // SessionOptions holds session options for initialization
 type SessionOptions struct {
-	StorageEngine   StorageEngine
+	StorageEngine   storage.StorageEngine
 	StorageFilePath string
 }
 
-// Config holds global settings used by the app
-// These may end up just being global constants.
-type Config struct {
-	TTL                 int
-	FailedLoginAttempts int
-	MaxLoginAttempts    int
-}
-
-// NewConfig creates a new global config struct with default settings.
-// This is primarily used for initializing a new data store
-func NewConfig() Config {
-	return Config{
-		TTL:                 DefaultSessionTTL,
-		FailedLoginAttempts: 0,
-		MaxLoginAttempts:    DefaultMaxLoginAttempts,
-	}
-}
-
-// ToJSON is a helper method for GlobalConfig
-func (g Config) ToJSON() []byte {
-	b, _ := json.Marshal(g)
-	return b
-}
-
 // NewSession takes a password and opts and returns a pointer to Session and an error
-func NewSession(password string, cfg Config, opts SessionOptions) (*Session, error) {
-	storageOpts := StorageOptions{Engine: opts.StorageEngine}
+func NewSession(password string, cfg config.Config, opts SessionOptions) (*Session, error) {
+	storageOpts := storage.StorageOptions{Engine: opts.StorageEngine}
 	storageOpts.FilePath = opts.StorageFilePath
-	storage, err := newStorage(cfg, storageOpts)
+	storage, err := storage.NewStorage(cfg, storageOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +82,8 @@ func NewSession(password string, cfg Config, opts SessionOptions) (*Session, err
 // NewDefaultSession is a wrapper around NewSession and applies simple defaults. This is intended to be used
 //by the reference apps.
 func NewDefaultSession(password string) (*Session, error) {
-	cfg := NewConfig()
-	opts := SessionOptions{StorageEngine: defaultStorageEngine}
+	cfg := config.NewConfig()
+	opts := SessionOptions{StorageEngine: storage.DefaultStorageEngine}
 	return NewSession(password, cfg, opts)
 }
 
@@ -145,7 +122,7 @@ func (s *Session) ShareHandshakePosition() (b []byte, err error) {
 
 // AddPeerToHandshake takes a json encoded peerConfig, attempts to unmarshal it and add it as a peer.
 // It returns a bool and an error. The bool indicates if handshake.AllPeersReceived == true, in which case
-// the handshake can safely be conversted int a chat.
+// the handshake can safely be converted int a chat.
 func (s *Session) AddPeerToHandshake(body []byte) (bool, error) {
 	// TODO: add decryption wrapper
 	var config peerConfig
@@ -254,7 +231,7 @@ func (s *Session) NewChat() (string, error) {
 		return "", err
 	}
 
-	if err := s.setChatlog(chatID, make(ChatLog)); err != nil {
+	if err := s.setChatLog(chatID, make(ChatLog)); err != nil {
 		deleteAllWithPrefix(s.storage, basePath)
 		return "", err
 	}
@@ -314,8 +291,8 @@ func (s *Session) setLookup(chatID, peerID string, l lookup) error {
 	return err
 }
 
-// GetChatlog fetches a chat log for a given chat
-func (s *Session) GetChatlog(chatID string) (ChatLog, error) {
+// GetChatLog fetches a chat log for a given chat
+func (s *Session) GetChatLog(chatID string) (ChatLog, error) {
 	key := fmt.Sprintf("chats/%v/%v/chatlog", chatID, s.profile.ID)
 	chatLogGob, err := s.get(key)
 	if err != nil {
@@ -324,7 +301,7 @@ func (s *Session) GetChatlog(chatID string) (ChatLog, error) {
 	return newChatLogFromGob(chatLogGob)
 }
 
-func (s *Session) setChatlog(chatID string, cl ChatLog) error {
+func (s *Session) setChatLog(chatID string, cl ChatLog) error {
 	key := fmt.Sprintf("chats/%v/%v/chatlog", chatID, s.profile.ID)
 	chatLogGob, err := encodeGob(cl)
 	if err != nil {
@@ -360,7 +337,7 @@ func (s *Session) getRendezvousHash(chatID, peerID string) (hash string) {
 	}
 	hash = string(hashBytes)
 
-	cl, err := s.GetChatlog(chatID)
+	cl, err := s.GetChatLog(chatID)
 	if err != nil {
 		return
 	}
@@ -411,7 +388,7 @@ func (s *Session) retrieveMessage(chatID, hash, peerID string) (data chatData, e
 }
 
 func (s *Session) logChatData(chatID string, peerID string, hash string, data chatData) error {
-	cl, err := s.GetChatlog(chatID)
+	cl, err := s.GetChatLog(chatID)
 	if err != nil {
 		return err
 	}
@@ -427,14 +404,14 @@ func (s *Session) logChatData(chatID string, peerID string, hash string, data ch
 	if err := cl.AddEntry(clEntry); err != nil {
 		return err
 	}
-	return s.setChatlog(chatID, cl)
+	return s.setChatLog(chatID, cl)
 }
 
 func (s *Session) recursivelyLogParents(chatID string, peerID string, data chatData) error {
 	if data.Parent == "" {
 		return nil // if no parent set, return early
 	}
-	cl, err := s.GetChatlog(chatID)
+	cl, err := s.GetChatLog(chatID)
 	if err != nil {
 		return err
 	}
@@ -490,7 +467,7 @@ func (s *Session) RetrieveMessages(chatID string) ([]byte, error) {
 		}
 
 	}
-	cl, err := s.GetChatlog(chatID)
+	cl, err := s.GetChatLog(chatID)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -588,7 +565,7 @@ func (s *Session) SendMessage(chatID string, b []byte) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	cl, err := s.GetChatlog(chatID)
+	cl, err := s.GetChatLog(chatID)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -604,7 +581,7 @@ func (s *Session) SendMessage(chatID string, b []byte) ([]byte, error) {
 	if err := cl.AddEntry(clEntry); err != nil {
 		return []byte{}, err
 	}
-	if err := s.setChatlog(chatID, cl); err != nil {
+	if err := s.setChatLog(chatID, cl); err != nil {
 		return []byte{}, err
 	}
 
@@ -613,7 +590,7 @@ func (s *Session) SendMessage(chatID string, b []byte) ([]byte, error) {
 
 // deleteAllWithPrefix takes a storage interface and a prefix string. It looks up all keys that
 // match the prefix and attempts to run the Delete method on all keys, returns a error or nil.
-func deleteAllWithPrefix(s storage, prefix string) error {
+func deleteAllWithPrefix(s storage.Storage, prefix string) error {
 	keys, err := s.List(prefix)
 	if err != nil {
 		return err

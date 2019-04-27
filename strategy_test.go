@@ -3,6 +3,8 @@ package handshake
 import (
 	"encoding/base64"
 	"testing"
+
+	"github.com/nomasters/handshake/lib/storage"
 )
 
 func TestExportStrategy(t *testing.T) {
@@ -13,22 +15,22 @@ func TestExportStrategy(t *testing.T) {
 	}
 	publicKey := privateKey[32:]
 
-	n := node{
+	n := storage.Node{
 		URL: "https://prototype.hashmap.sh",
 	}
 
-	sig := signatureAlgorithm{
-		Type:       ed25519,
+	sig := storage.SignatureAlgorithm{
+		Type:       storage.ED25519,
 		PrivateKey: privateKey,
 		PublicKey:  publicKey,
 	}
 
-	rOpts := StorageOptions{
-		WriteNodes: []node{n},
-		Signatures: []signatureAlgorithm{sig},
-		WriteRule:  defaultConsensusRule,
+	rOpts := storage.StorageOptions{
+		WriteNodes: []storage.Node{n},
+		Signatures: []storage.SignatureAlgorithm{sig},
+		WriteRule:  storage.defaultConsensusRule,
 	}
-	r, err := newHashmapStorage(rOpts)
+	r, err := storage.NewHashmapStorage(rOpts)
 	if err != nil {
 		t.Errorf("new hashmapStore failed: %v\n", err)
 	}
@@ -36,15 +38,15 @@ func TestExportStrategy(t *testing.T) {
 	settings := make(map[string]string)
 	settings["query_type"] = "api"
 
-	n2 := node{
+	n2 := storage.Node{
 		URL:      "https://ipfs.infura.io:5001/",
 		Settings: settings,
 	}
-	sOpts := StorageOptions{
-		WriteNodes: []node{n2},
-		WriteRule:  defaultConsensusRule,
+	sOpts := storage.StorageOptions{
+		WriteNodes: []storage.Node{n2},
+		WriteRule:  storage.defaultConsensusRule,
 	}
-	s, err := newIPFSStorage(sOpts)
+	s, err := storage.newIPFSStorage(sOpts)
 	if err != nil {
 		t.Errorf("new IPFS storage failed: %v\n", err)
 	}

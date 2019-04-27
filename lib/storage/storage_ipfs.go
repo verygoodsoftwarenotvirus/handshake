@@ -1,4 +1,4 @@
-package handshake
+package storage
 
 import (
 	"bytes"
@@ -16,8 +16,8 @@ import (
 
 // IPFSStorage interacts with an IPFS gateway and conforms to the Storage interface
 type ipfsStorage struct {
-	ReadNodes  []node
-	WriteNodes []node
+	ReadNodes  []Node
+	WriteNodes []Node
 	ReadRule   consensusRule
 	WriteRule  consensusRule
 }
@@ -81,17 +81,17 @@ func (s ipfsStorage) Delete(key string) error            { return nil }
 func (s ipfsStorage) List(path string) ([]string, error) { return []string{}, nil }
 func (s ipfsStorage) Close() error                       { return nil }
 
-func (s ipfsStorage) share() (peerStorage, error) {
-	return peerStorage{
+func (s ipfsStorage) Share() (PeerStorage, error) {
+	return PeerStorage{
 		Type:      IPFSEngine,
 		ReadNodes: s.WriteNodes,
 		ReadRule:  s.WriteRule,
 	}, nil
 }
 
-// TODO: configure export settings for this
-func (s ipfsStorage) export() (storageConfig, error) {
-	return storageConfig{
+// TODO: configure Export settings for this
+func (s ipfsStorage) Export() (StorageConfig, error) {
+	return StorageConfig{
 		Type:       IPFSEngine,
 		ReadNodes:  s.ReadNodes,
 		ReadRule:   s.ReadRule,
@@ -113,7 +113,7 @@ func appendToPath(base, add string) string {
 	return fmt.Sprintf("%s/%s", base, add)
 }
 
-func getFromIPFS(n node, hash string) ([]byte, error) {
+func getFromIPFS(n Node, hash string) ([]byte, error) {
 	client := http.DefaultClient
 	u, err := url.Parse(n.URL)
 	if err != nil {
@@ -152,7 +152,7 @@ func getFromIPFS(n node, hash string) ([]byte, error) {
 	return ioutil.ReadAll(limitedReader)
 }
 
-func postToIPFS(n node, body []byte) (string, error) {
+func postToIPFS(n Node, body []byte) (string, error) {
 	client := http.DefaultClient
 	u, err := url.Parse(n.URL)
 	if err != nil {

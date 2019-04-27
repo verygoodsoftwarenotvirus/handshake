@@ -1,4 +1,4 @@
-package handshake
+package storage
 
 import (
 	"testing"
@@ -8,16 +8,16 @@ func TestGetFromIPFS(t *testing.T) {
 	settings := make(map[string]string)
 	settings["query_type"] = "api"
 
-	happyNodes := []node{
-		// node{
+	happyNodes := []Node{
+		// Node{
 		// 	URL:      "http://127.0.0.1:5001",
 		// 	Settings: settings,
 		// },
-		node{
+		{
 			URL:      "https://ipfs.infura.io:5001/",
 			Settings: settings,
 		},
-		node{
+		{
 			URL: "https://cloudflare-ipfs.com",
 		},
 	}
@@ -36,16 +36,16 @@ func TestPostToIPFS(t *testing.T) {
 
 	settings["query_type"] = "api"
 
-	happyNodes := []node{
-		// node{
+	happyNodes := []Node{
+		// Node{
 		// 	URL:      "http://127.0.0.1:5001",
 		// 	Settings: settings,
 		// },
-		node{
+		{
 			URL:      "https://ipfs.infura.io:5001/",
 			Settings: settings,
 		},
-		node{
+		{
 			URL: "https://hardbin.com",
 		},
 	}

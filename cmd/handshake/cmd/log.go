@@ -39,7 +39,7 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			log.Fatal(err)
 		}
-		chatlog, err := session.GetChatlog(chatID)
+		chatlog, err := session.GetChatLog(chatID)
 		if err != nil {
 			log.Fatal(err)
 		}

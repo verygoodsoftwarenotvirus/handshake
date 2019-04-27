@@ -1,4 +1,4 @@
-package handshake
+package storage
 
 import (
 	"encoding/base64"
@@ -14,22 +14,22 @@ func TestHashmapSet(t *testing.T) {
 	}
 	publicKey := privateKey[32:]
 
-	n := node{
+	n := Node{
 		URL: "https://prototype.hashmap.sh",
 	}
 
-	sig := signatureAlgorithm{
-		Type:       ed25519,
+	sig := SignatureAlgorithm{
+		Type:       ED25519,
 		PrivateKey: privateKey,
 		PublicKey:  publicKey,
 	}
 
 	opts := StorageOptions{
-		WriteNodes: []node{n},
-		Signatures: []signatureAlgorithm{sig},
+		WriteNodes: []Node{n},
+		Signatures: []SignatureAlgorithm{sig},
 		WriteRule:  defaultConsensusRule,
 	}
-	hms, err := newHashmapStorage(opts)
+	hms, err := NewHashmapStorage(opts)
 	if err != nil {
 		t.Errorf("new hashmapStore failed: %v\n", err)
 	}
@@ -40,15 +40,15 @@ func TestHashmapSet(t *testing.T) {
 }
 
 func TestHashmapStorageGet(t *testing.T) {
-	n := node{
+	n := Node{
 		URL: "https://prototype.hashmap.sh/2DrjgbL8QfKRvxU9KtFYFdNiPZrQijyxkvWXH17QnvNmzB3apR",
 		//    2Drjgb5DseoVAvRLngcVmd4YfJAi3J1145kiNFV3CL32Hs6vzb
 	}
 	opts := StorageOptions{
-		ReadNodes: []node{n},
+		ReadNodes: []Node{n},
 		ReadRule:  defaultConsensusRule,
 	}
-	hms, err := newHashmapStorage(opts)
+	hms, err := NewHashmapStorage(opts)
 	if err != nil {
 		t.Errorf("new hashmapStore failed: %v\n", err)
 	}

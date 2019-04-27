@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+
+	"github.com/nomasters/handshake/lib/config"
+	"github.com/nomasters/handshake/lib/storage"
 )
 
 func ensureBobCleanDB() {
@@ -77,17 +80,17 @@ func TestSendReceive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	os.Rename(defaultBoltFilePath, bobStoragePath)
+	os.Rename(storage.DefaultBoltFilePath, bobStoragePath)
 
 	if err := NewGenesisProfile(alicePassword); err != nil {
 		t.Fatal(err)
 	}
 
-	os.Rename(defaultBoltFilePath, aliceStoragePath)
+	os.Rename(storage.DefaultBoltFilePath, aliceStoragePath)
 
-	bobCfg := NewConfig()
+	bobCfg := config.NewConfig()
 	bobSessionOpts := SessionOptions{
-		StorageEngine:   defaultStorageEngine,
+		StorageEngine:   storage.DefaultStorageEngine,
 		StorageFilePath: bobStoragePath,
 	}
 
@@ -96,9 +99,9 @@ func TestSendReceive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	aliceCfg := NewConfig()
+	aliceCfg := config.NewConfig()
 	aliceSessionOpts := SessionOptions{
-		StorageEngine:   defaultStorageEngine,
+		StorageEngine:   storage.DefaultStorageEngine,
 		StorageFilePath: aliceStoragePath,
 	}
 

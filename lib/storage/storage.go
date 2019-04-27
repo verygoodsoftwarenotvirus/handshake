@@ -1,28 +1,30 @@
-package handshake
+package storage
 
 import (
 	"errors"
 
 	"github.com/nomasters/hashmap"
+
+	"github.com/nomasters/handshake/lib/config"
 )
 
 // StorageEngine type for enum
 type StorageEngine int
 
 const (
-	// BoltEngine is the default storage engine for device storage
+	// BoltEngine is the default Storage engine for device Storage
 	BoltEngine StorageEngine = iota
-	// HashmapEngine is the default Rendezvous storage type
+	// HashmapEngine is the default Rendezvous Storage type
 	HashmapEngine
-	// IPFSEngine is the default message storage type
+	// IPFSEngine is the default message Storage type
 	IPFSEngine
 )
 
 const (
-	// DefaultStorageEngine is used to set the storage engine if none is set in
-	// storage options
-	defaultStorageEngine = BoltEngine
-	// DefaultBoltFilePath is the default path and file name for BoltDB storage
+	// DefaultStorageEngine is used to set the Storage engine if none is set in
+	// Storage options
+	DefaultStorageEngine = BoltEngine
+	// DefaultBoltFilePath is the default path and file name for BoltDB Storage
 	defaultBoltFilePath = "handshake.boltdb"
 	// DefaultTLB is the name of the top level bucket for BoltDB
 	defaultTLB = "handshake"
@@ -35,16 +37,16 @@ const (
 type signatureType int
 
 const (
-	// ed25519
-	ed25519 signatureType = iota
+	// ED25519 is the primary signature type
+	ED25519 signatureType = iota
 )
 
 // consensusRule is a datatype to capture basic rules around how consensus with multiple nodes should
-// work for storage such as IPFS and Hashmap if multiple endpoints are configured.
+// work for Storage such as IPFS and Hashmap if multiple endpoints are configured.
 type consensusRule int
 
 const (
-	// firstSuccess dictates that if any node returns a success, success is returned
+	// firstSuccess dictates that if any Node returns a success, success is returned
 	firstSuccess consensusRule = iota
 	// redundantPairSuccess dictates that if any two nodes return a success, success is returned
 	redundantPairSuccess
@@ -56,74 +58,74 @@ const (
 
 const (
 	defaultConsensusRule  = firstSuccess
-	defaultHashmapSigType = ed25519
+	defaultHashmapSigType = ED25519
 )
 
 // Storage is the primary interface for interacting with the KV store in handshake
-type storage interface {
+type Storage interface {
 	Get(key string) ([]byte, error)
 	Set(key string, value []byte) (string, error)
 	Delete(key string) error
 	List(path string) ([]string, error)
 	Close() error
-	export() (storageConfig, error)
-	share() (peerStorage, error)
+	Export() (StorageConfig, error)
+	Share() (PeerStorage, error)
 }
 
-func newDefaultRendezvous() *hashmapStorage {
+func NewDefaultRendezvous() *HashmapStorage {
 	privateKey := hashmap.GenerateKey()
 	publicKey := privateKey[32:]
-	n := node{
+	n := Node{
 		URL: defaultRendezvousURL,
 	}
-	sig := signatureAlgorithm{
-		Type:       ed25519,
+	sig := SignatureAlgorithm{
+		Type:       ED25519,
 		PrivateKey: privateKey,
 		PublicKey:  publicKey,
 	}
-	return &hashmapStorage{
-		WriteNodes: []node{n},
-		Signatures: []signatureAlgorithm{sig},
+	return &HashmapStorage{
+		WriteNodes: []Node{n},
+		Signatures: []SignatureAlgorithm{sig},
 		WriteRule:  defaultConsensusRule,
 	}
 }
 
-func newDefaultMessageStorage() ipfsStorage {
+func NewDefaultMessageStorage() ipfsStorage {
 	settings := make(map[string]string)
 	settings["query_type"] = "api"
 
-	n := node{
+	n := Node{
 		URL:      "https://ipfs.infura.io:5001/",
 		Settings: settings,
 	}
 
 	return ipfsStorage{
-		WriteNodes: []node{n},
+		WriteNodes: []Node{n},
 		WriteRule:  defaultConsensusRule,
 	}
 }
 
-// peerStorage is a set of aggregate settings used for sharing and storing storage settings
-type peerStorage struct {
+// PeerStorage is a set of aggregate settings used for sharing and storing Storage settings
+type PeerStorage struct {
 	Type       StorageEngine `json:"type"`
-	ReadNodes  []node        `json:"read_nodes,omitempty"`
-	WriteNodes []node        `json:"write_nodes,omitempty"`
+	ReadNodes  []Node        `json:"read_nodes,omitempty"`
+	WriteNodes []Node        `json:"write_nodes,omitempty"`
 	ReadRule   consensusRule `json:"read_rule,omitempty"`
 	WriteRule  consensusRule `json:"write_rule,omitempty"`
 }
 
-// storageConfig is a set of settings used to in storage interface gob storage
-type storageConfig struct {
+// StorageConfig is a set of settings used to in Storage interface gob Storage
+type StorageConfig struct {
 	Type       StorageEngine
-	ReadNodes  []node
-	WriteNodes []node
+	ReadNodes  []Node
+	WriteNodes []Node
 	ReadRule   consensusRule
 	WriteRule  consensusRule
-	Signatures []signatureAlgorithm
+	Signatures []SignatureAlgorithm
 	Latest     int64
 }
 
-type node struct {
+type Node struct {
 	URL      string            `json:"url,omitempty"`
 	Header   map[string]string `json:"header,omitempty"`
 	Settings map[string]string `json:"settings,omitempty"`
@@ -133,15 +135,15 @@ type node struct {
 type StorageOptions struct {
 	Engine     StorageEngine
 	FilePath   string
-	Signatures []signatureAlgorithm
-	ReadNodes  []node
-	WriteNodes []node
+	Signatures []SignatureAlgorithm
+	ReadNodes  []Node
+	WriteNodes []Node
 	ReadRule   consensusRule
 	WriteRule  consensusRule
 }
 
-// NewStorage initiates a new storage Interface
-func newStorage(cfg Config, opts StorageOptions) (storage, error) {
+// NewStorage initiates a new Storage Interface
+func NewStorage(cfg config.Config, opts StorageOptions) (Storage, error) {
 	switch opts.Engine {
 	case BoltEngine:
 		return newBoltStorage(cfg, opts)
@@ -150,7 +152,7 @@ func newStorage(cfg Config, opts StorageOptions) (storage, error) {
 	}
 }
 
-func newStorageFromPeer(s peerStorage) (storage, error) {
+func NewStorageFromPeer(s PeerStorage) (Storage, error) {
 	switch s.Type {
 	case IPFSEngine:
 		return ipfsStorage{
@@ -158,16 +160,16 @@ func newStorageFromPeer(s peerStorage) (storage, error) {
 			ReadRule:  s.ReadRule,
 		}, nil
 	case HashmapEngine:
-		return &hashmapStorage{
+		return &HashmapStorage{
 			ReadNodes: s.ReadNodes,
 			ReadRule:  s.ReadRule,
 		}, nil
 	default:
-		return nil, errors.New("invalid storage engine type")
+		return nil, errors.New("invalid Storage engine type")
 	}
 }
 
-func newStorageFromConfig(s storageConfig) (storage, error) {
+func NewStorageFromConfig(s StorageConfig) (Storage, error) {
 	switch s.Type {
 	case IPFSEngine:
 		return ipfsStorage{
@@ -177,7 +179,7 @@ func newStorageFromConfig(s storageConfig) (storage, error) {
 			WriteRule:  s.WriteRule,
 		}, nil
 	case HashmapEngine:
-		return &hashmapStorage{
+		return &HashmapStorage{
 			ReadNodes:  s.ReadNodes,
 			ReadRule:   s.ReadRule,
 			WriteNodes: s.WriteNodes,
@@ -186,6 +188,6 @@ func newStorageFromConfig(s storageConfig) (storage, error) {
 			Latest:     s.Latest,
 		}, nil
 	default:
-		return nil, errors.New("invalid storage engine type")
+		return nil, errors.New("invalid Storage engine type")
 	}
 }

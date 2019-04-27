@@ -1,16 +1,18 @@
-package handshake
+package storage
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
 
+	"github.com/nomasters/handshake/lib/config"
+
 	bolt "go.etcd.io/bbolt"
 )
 
 // NewBoltStorage takes StorageOptions as an argument and returns a reference to a BoltDB
 // based implementation of the Storage interface.
-func newBoltStorage(cfg Config, opts StorageOptions) (boltStorage, error) {
+func newBoltStorage(cfg config.Config, opts StorageOptions) (boltStorage, error) {
 	tlb := defaultTLB
 	fp := defaultBoltFilePath
 	if opts.FilePath != "" {
@@ -76,7 +78,7 @@ func (s boltStorage) Set(key string, value []byte) (string, error) {
 	})
 }
 
-// Delete takes a key string and deletes item, if it exists in storage, returns an error from a BoltStorage struct.
+// Delete takes a key string and deletes item, if it exists in Storage, returns an error from a BoltStorage struct.
 func (s boltStorage) Delete(key string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(s.tlb))
@@ -97,16 +99,16 @@ func (s boltStorage) List(path string) (keys []string, err error) {
 	return keys, err
 }
 
-// share is not configured on BoltStorage, since it is private storage.
+// Share is not configured on BoltStorage, since it is private Storage.
 // Therefore it returns an empty struct.
-func (s boltStorage) share() (peerStorage, error) {
-	return peerStorage{}, errors.New("this storage does not support shared configs")
+func (s boltStorage) Share() (PeerStorage, error) {
+	return PeerStorage{}, errors.New("this Storage does not support shared configs")
 }
 
-// share is not configured on BoltStorage, since it is private storage.
+// Share is not configured on BoltStorage, since it is private Storage.
 // Therefore it returns an empty struct.
-func (s boltStorage) export() (storageConfig, error) {
-	return storageConfig{}, errors.New("this storage does not support exporting configs")
+func (s boltStorage) Export() (StorageConfig, error) {
+	return StorageConfig{}, errors.New("this Storage does not support exporting configs")
 }
 
 // Close is used to close the Bolt DB engine and returns an error

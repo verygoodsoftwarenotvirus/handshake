@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	multihash "github.com/multiformats/go-multihash"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/nacl/secretbox"
 )
@@ -101,30 +100,6 @@ func genLookups(pepper [64]byte, entropy [96]byte, cipherType CipherType, count 
 		lookups[k] = v
 	}
 	return lookups, nil
-}
-
-// base58Multihash a set of bytes to an IPFS style blake2b-256 multihash in base58 encoding
-func base58Multihash(b []byte) string {
-	mh, _ := multihash.Sum(b, blake2b256code, blake2b256length)
-	return mh.B58String()
-}
-
-// isHashmapMultihash takes a string encoded base58 multihash and checks to see if it is supported
-// by handshake. Currently, handshake only supports
-func isHashmapMultihash(hash string) bool {
-	mh, err := multihash.FromB58String(hash)
-	if err != nil {
-		return false // return false if error decoding
-	}
-	decoded, err := multihash.Decode(mh)
-	if err != nil {
-		return false
-	}
-	switch decoded.Name {
-	case blake2b256name:
-		return true
-	}
-	return false
 }
 
 // genTimeStampNonce takes an int for the nonce size and returns a byte slice of length size.

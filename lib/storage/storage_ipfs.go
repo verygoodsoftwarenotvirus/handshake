@@ -15,15 +15,16 @@ import (
 )
 
 // IPFSStorage interacts with an IPFS gateway and conforms to the Storage interface
-type ipfsStorage struct {
+type IPFSStorage struct {
 	ReadNodes  []Node
 	WriteNodes []Node
 	ReadRule   consensusRule
 	WriteRule  consensusRule
 }
 
-func newIPFSStorage(opts StorageOptions) (ipfsStorage, error) {
-	return ipfsStorage{
+// NewIPFSStorage provides a new IPFS Storage engine
+func NewIPFSStorage(opts Options) (IPFSStorage, error) {
+	return IPFSStorage{
 		ReadNodes:  opts.ReadNodes,
 		WriteNodes: opts.WriteNodes,
 		ReadRule:   opts.ReadRule,
@@ -31,7 +32,30 @@ func newIPFSStorage(opts StorageOptions) (ipfsStorage, error) {
 	}, nil
 }
 
-func (s ipfsStorage) Get(key string) ([]byte, error) {
+func (s *IPFSStorage) getFirstSuccess(hash string) ([]byte, error) {
+	for _, node := range s.ReadNodes {
+		resp, err := getFromIPFS(node, hash)
+		if err != nil {
+			continue
+		}
+		return resp, nil
+	}
+	return []byte{}, errors.New("no servers available")
+}
+
+func (s IPFSStorage) setFirstSuccess(body []byte) (string, error) {
+	for _, node := range s.WriteNodes {
+		resp, err := postToIPFS(node, body)
+		if err != nil {
+			continue
+		}
+		return resp, nil
+	}
+	return "", errors.New("no servers available")
+}
+
+// Get fetches the value for a given key
+func (s IPFSStorage) Get(key string) ([]byte, error) {
 	if len(s.ReadNodes) < 1 {
 		return []byte{}, errors.New("no read nodes configured")
 	}
@@ -43,18 +67,8 @@ func (s ipfsStorage) Get(key string) ([]byte, error) {
 	}
 }
 
-func (s *ipfsStorage) getFirstSuccess(hash string) ([]byte, error) {
-	for _, node := range s.ReadNodes {
-		resp, err := getFromIPFS(node, hash)
-		if err != nil {
-			continue
-		}
-		return resp, nil
-	}
-	return []byte{}, errors.New("no servers available")
-}
-
-func (s ipfsStorage) Set(key string, value []byte) (string, error) {
+// Set sets the value of a given key to a given value
+func (s IPFSStorage) Set(key string, value []byte) (string, error) {
 	if len(s.WriteNodes) < 1 {
 		return "", errors.New("no write nodes configured")
 	}
@@ -66,22 +80,17 @@ func (s ipfsStorage) Set(key string, value []byte) (string, error) {
 	}
 }
 
-func (s ipfsStorage) setFirstSuccess(body []byte) (string, error) {
-	for _, node := range s.WriteNodes {
-		resp, err := postToIPFS(node, body)
-		if err != nil {
-			continue
-		}
-		return resp, nil
-	}
-	return "", errors.New("no servers available")
-}
+// Delete is a noop
+func (s IPFSStorage) Delete(key string) error { return nil }
 
-func (s ipfsStorage) Delete(key string) error            { return nil }
-func (s ipfsStorage) List(path string) ([]string, error) { return []string{}, nil }
-func (s ipfsStorage) Close() error                       { return nil }
+// List is a noop
+func (s IPFSStorage) List(path string) ([]string, error) { return []string{}, nil }
 
-func (s ipfsStorage) Share() (PeerStorage, error) {
+// Close is noop
+func (s IPFSStorage) Close() error { return nil }
+
+// Share generates a PeerStorage from the configured IPFSStorage
+func (s IPFSStorage) Share() (PeerStorage, error) {
 	return PeerStorage{
 		Type:      IPFSEngine,
 		ReadNodes: s.WriteNodes,
@@ -89,9 +98,10 @@ func (s ipfsStorage) Share() (PeerStorage, error) {
 	}, nil
 }
 
+// Export produces a config from the configured IPFSStorage
 // TODO: configure Export settings for this
-func (s ipfsStorage) Export() (StorageConfig, error) {
-	return StorageConfig{
+func (s IPFSStorage) Export() (Config, error) {
+	return Config{
 		Type:       IPFSEngine,
 		ReadNodes:  s.ReadNodes,
 		ReadRule:   s.ReadRule,

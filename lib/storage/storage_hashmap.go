@@ -31,7 +31,7 @@ type SignatureAlgorithm struct {
 }
 
 // NewHashmapStorage builds a new Hashmap Storage instance
-func NewHashmapStorage(opts StorageOptions) (*HashmapStorage, error) {
+func NewHashmapStorage(opts Options) (*HashmapStorage, error) {
 	return &HashmapStorage{
 		Signatures: opts.Signatures,
 		ReadNodes:  opts.ReadNodes,
@@ -190,8 +190,8 @@ func (s HashmapStorage) Share() (PeerStorage, error) {
 
 // Export returns a storage configuration based on the storage instance
 // TODO: configure Export settings for this
-func (s HashmapStorage) Export() (StorageConfig, error) {
-	return StorageConfig{
+func (s HashmapStorage) Export() (Config, error) {
+	return Config{
 		Type:       HashmapEngine,
 		ReadNodes:  s.ReadNodes,
 		WriteNodes: s.WriteNodes,

@@ -35,13 +35,13 @@ type Session struct {
 
 // SessionOptions holds session options for initialization
 type SessionOptions struct {
-	StorageEngine   storage.StorageEngine
+	StorageEngine   storage.Engine
 	StorageFilePath string
 }
 
 // NewSession takes a password and opts and returns a pointer to Session and an error
 func NewSession(password string, cfg config.Config, opts SessionOptions) (*Session, error) {
-	storageOpts := storage.StorageOptions{Engine: opts.StorageEngine}
+	storageOpts := storage.Options{Engine: opts.StorageEngine}
 	storageOpts.FilePath = opts.StorageFilePath
 	storage, err := storage.NewStorage(cfg, storageOpts)
 	if err != nil {

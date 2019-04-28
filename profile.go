@@ -50,7 +50,7 @@ func newProfileFromGob(b []byte) (Profile, error) {
 // `NewGenesisProfile()`.
 func ProfilesExist() (bool, error) {
 	cfg := config.NewConfig()
-	opts := storage.StorageOptions{Engine: storage.DefaultStorageEngine}
+	opts := storage.Options{Engine: storage.DefaultStorageEngine}
 	storage, err := storage.NewStorage(cfg, opts)
 	if err != nil {
 		return false, err
@@ -75,7 +75,7 @@ func profilesExist(storage storage.Storage) (bool, error) {
 // NewGenesisProfile takes password and
 func NewGenesisProfile(password string) error {
 	cfg := config.NewConfig()
-	opts := storage.StorageOptions{Engine: storage.DefaultStorageEngine}
+	opts := storage.Options{Engine: storage.DefaultStorageEngine}
 	storage, err := storage.NewStorage(cfg, opts)
 	if err != nil {
 		return err

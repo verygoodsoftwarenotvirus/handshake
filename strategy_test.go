@@ -25,10 +25,10 @@ func TestExportStrategy(t *testing.T) {
 		PublicKey:  publicKey,
 	}
 
-	rOpts := storage.StorageOptions{
+	rOpts := storage.Options{
 		WriteNodes: []storage.Node{n},
 		Signatures: []storage.SignatureAlgorithm{sig},
-		WriteRule:  storage.defaultConsensusRule,
+		WriteRule:  storage.DefaultConsensusRule,
 	}
 	r, err := storage.NewHashmapStorage(rOpts)
 	if err != nil {
@@ -42,11 +42,11 @@ func TestExportStrategy(t *testing.T) {
 		URL:      "https://ipfs.infura.io:5001/",
 		Settings: settings,
 	}
-	sOpts := storage.StorageOptions{
+	sOpts := storage.Options{
 		WriteNodes: []storage.Node{n2},
-		WriteRule:  storage.defaultConsensusRule,
+		WriteRule:  storage.DefaultConsensusRule,
 	}
-	s, err := storage.newIPFSStorage(sOpts)
+	s, err := storage.NewIPFSStorage(sOpts)
 	if err != nil {
 		t.Errorf("new IPFS storage failed: %v\n", err)
 	}

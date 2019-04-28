@@ -21,8 +21,8 @@ type strategyPeerConfig struct {
 
 // strategyConfig is a struct that encapsulates internal chat strategy settings
 type strategyConfig struct {
-	Rendezvous storage.StorageConfig
-	Storage    storage.StorageConfig
+	Rendezvous storage.Config
+	Storage    storage.Config
 	Cipher     cipherConfig
 }
 

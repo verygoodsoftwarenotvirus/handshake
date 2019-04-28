@@ -8,12 +8,12 @@ import (
 	"github.com/nomasters/handshake/lib/config"
 )
 
-// StorageEngine type for enum
-type StorageEngine int
+// Engine type for enum
+type Engine int
 
 const (
 	// BoltEngine is the default Storage engine for device Storage
-	BoltEngine StorageEngine = iota
+	BoltEngine Engine = iota
 	// HashmapEngine is the default Rendezvous Storage type
 	HashmapEngine
 	// IPFSEngine is the default message Storage type
@@ -25,7 +25,7 @@ const (
 	// Storage options
 	DefaultStorageEngine = BoltEngine
 	// DefaultBoltFilePath is the default path and file name for BoltDB Storage
-	defaultBoltFilePath = "handshake.boltdb"
+	DefaultBoltFilePath = "handshake.boltdb"
 	// DefaultTLB is the name of the top level bucket for BoltDB
 	defaultTLB = "handshake"
 	// GlobalConfigKey is the key string for where global-config is stored
@@ -57,7 +57,8 @@ const (
 )
 
 const (
-	defaultConsensusRule  = firstSuccess
+	// DefaultConsensusRule is the default consensusRule
+	DefaultConsensusRule  = firstSuccess
 	defaultHashmapSigType = ED25519
 )
 
@@ -68,10 +69,11 @@ type Storage interface {
 	Delete(key string) error
 	List(path string) ([]string, error)
 	Close() error
-	Export() (StorageConfig, error)
+	Export() (Config, error)
 	Share() (PeerStorage, error)
 }
 
+// NewDefaultRendezvous provides the default rendezvous storage location
 func NewDefaultRendezvous() *HashmapStorage {
 	privateKey := hashmap.GenerateKey()
 	publicKey := privateKey[32:]
@@ -86,11 +88,12 @@ func NewDefaultRendezvous() *HashmapStorage {
 	return &HashmapStorage{
 		WriteNodes: []Node{n},
 		Signatures: []SignatureAlgorithm{sig},
-		WriteRule:  defaultConsensusRule,
+		WriteRule:  DefaultConsensusRule,
 	}
 }
 
-func NewDefaultMessageStorage() ipfsStorage {
+// NewDefaultMessageStorage provides the default long-term storage location
+func NewDefaultMessageStorage() Storage {
 	settings := make(map[string]string)
 	settings["query_type"] = "api"
 
@@ -99,24 +102,24 @@ func NewDefaultMessageStorage() ipfsStorage {
 		Settings: settings,
 	}
 
-	return ipfsStorage{
+	return IPFSStorage{
 		WriteNodes: []Node{n},
-		WriteRule:  defaultConsensusRule,
+		WriteRule:  DefaultConsensusRule,
 	}
 }
 
 // PeerStorage is a set of aggregate settings used for sharing and storing Storage settings
 type PeerStorage struct {
-	Type       StorageEngine `json:"type"`
+	Type       Engine        `json:"type"`
 	ReadNodes  []Node        `json:"read_nodes,omitempty"`
 	WriteNodes []Node        `json:"write_nodes,omitempty"`
 	ReadRule   consensusRule `json:"read_rule,omitempty"`
 	WriteRule  consensusRule `json:"write_rule,omitempty"`
 }
 
-// StorageConfig is a set of settings used to in Storage interface gob Storage
-type StorageConfig struct {
-	Type       StorageEngine
+// Config is a set of settings used to in Storage interface gob Storage
+type Config struct {
+	Type       Engine
 	ReadNodes  []Node
 	WriteNodes []Node
 	ReadRule   consensusRule
@@ -125,15 +128,16 @@ type StorageConfig struct {
 	Latest     int64
 }
 
+// Node represents DOCUMENTME
 type Node struct {
 	URL      string            `json:"url,omitempty"`
 	Header   map[string]string `json:"header,omitempty"`
 	Settings map[string]string `json:"settings,omitempty"`
 }
 
-// StorageOptions are used to pass in initialization settings
-type StorageOptions struct {
-	Engine     StorageEngine
+// Options are used to pass in initialization settings
+type Options struct {
+	Engine     Engine
 	FilePath   string
 	Signatures []SignatureAlgorithm
 	ReadNodes  []Node
@@ -143,7 +147,7 @@ type StorageOptions struct {
 }
 
 // NewStorage initiates a new Storage Interface
-func NewStorage(cfg config.Config, opts StorageOptions) (Storage, error) {
+func NewStorage(cfg config.Config, opts Options) (Storage, error) {
 	switch opts.Engine {
 	case BoltEngine:
 		return newBoltStorage(cfg, opts)
@@ -152,10 +156,11 @@ func NewStorage(cfg config.Config, opts StorageOptions) (Storage, error) {
 	}
 }
 
+// NewStorageFromPeer creates a new Storage from a PeerStorage
 func NewStorageFromPeer(s PeerStorage) (Storage, error) {
 	switch s.Type {
 	case IPFSEngine:
-		return ipfsStorage{
+		return IPFSStorage{
 			ReadNodes: s.ReadNodes,
 			ReadRule:  s.ReadRule,
 		}, nil
@@ -169,23 +174,24 @@ func NewStorageFromPeer(s PeerStorage) (Storage, error) {
 	}
 }
 
-func NewStorageFromConfig(s StorageConfig) (Storage, error) {
-	switch s.Type {
+// NewStorageFromConfig creates a new Storage from a Config
+func NewStorageFromConfig(cfg Config) (Storage, error) {
+	switch cfg.Type {
 	case IPFSEngine:
-		return ipfsStorage{
-			ReadNodes:  s.ReadNodes,
-			ReadRule:   s.ReadRule,
-			WriteNodes: s.WriteNodes,
-			WriteRule:  s.WriteRule,
+		return IPFSStorage{
+			ReadNodes:  cfg.ReadNodes,
+			ReadRule:   cfg.ReadRule,
+			WriteNodes: cfg.WriteNodes,
+			WriteRule:  cfg.WriteRule,
 		}, nil
 	case HashmapEngine:
 		return &HashmapStorage{
-			ReadNodes:  s.ReadNodes,
-			ReadRule:   s.ReadRule,
-			WriteNodes: s.WriteNodes,
-			WriteRule:  s.WriteRule,
-			Signatures: s.Signatures,
-			Latest:     s.Latest,
+			ReadNodes:  cfg.ReadNodes,
+			ReadRule:   cfg.ReadRule,
+			WriteNodes: cfg.WriteNodes,
+			WriteRule:  cfg.WriteRule,
+			Signatures: cfg.Signatures,
+			Latest:     cfg.Latest,
 		}, nil
 	default:
 		return nil, errors.New("invalid Storage engine type")

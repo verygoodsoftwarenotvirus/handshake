@@ -10,11 +10,11 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-// NewBoltStorage takes StorageOptions as an argument and returns a reference to a BoltDB
+// NewBoltStorage takes Options as an argument and returns a reference to a BoltDB
 // based implementation of the Storage interface.
-func newBoltStorage(cfg config.Config, opts StorageOptions) (boltStorage, error) {
+func newBoltStorage(cfg config.Config, opts Options) (boltStorage, error) {
 	tlb := defaultTLB
-	fp := defaultBoltFilePath
+	fp := DefaultBoltFilePath
 	if opts.FilePath != "" {
 		fp = opts.FilePath
 	}
@@ -107,8 +107,8 @@ func (s boltStorage) Share() (PeerStorage, error) {
 
 // Share is not configured on BoltStorage, since it is private Storage.
 // Therefore it returns an empty struct.
-func (s boltStorage) Export() (StorageConfig, error) {
-	return StorageConfig{}, errors.New("this Storage does not support exporting configs")
+func (s boltStorage) Export() (Config, error) {
+	return Config{}, errors.New("this Storage does not support exporting configs")
 }
 
 // Close is used to close the Bolt DB engine and returns an error

@@ -24,10 +24,10 @@ func TestHashmapSet(t *testing.T) {
 		PublicKey:  publicKey,
 	}
 
-	opts := StorageOptions{
+	opts := Options{
 		WriteNodes: []Node{n},
 		Signatures: []SignatureAlgorithm{sig},
-		WriteRule:  defaultConsensusRule,
+		WriteRule:  DefaultConsensusRule,
 	}
 	hms, err := NewHashmapStorage(opts)
 	if err != nil {
@@ -44,9 +44,9 @@ func TestHashmapStorageGet(t *testing.T) {
 		URL: "https://prototype.hashmap.sh/2DrjgbL8QfKRvxU9KtFYFdNiPZrQijyxkvWXH17QnvNmzB3apR",
 		//    2Drjgb5DseoVAvRLngcVmd4YfJAi3J1145kiNFV3CL32Hs6vzb
 	}
-	opts := StorageOptions{
+	opts := Options{
 		ReadNodes: []Node{n},
-		ReadRule:  defaultConsensusRule,
+		ReadRule:  DefaultConsensusRule,
 	}
 	hms, err := NewHashmapStorage(opts)
 	if err != nil {
